@@ -1,0 +1,580 @@
+﻿
+
+<template id="Grid">
+    <div>
+        <div class="row">
+            
+        </div>
+        <div class="">
+
+            <input type="button" class="btn btn-secondary" value="Reset" v-on:click="reset" />
+            <select :value="selectedPageSize" title="Page Size" class="form-control align-self-end" id="ddpageSize" style="max-width: 75px;float:right" v-on:change="changePageSize()">
+                <option v-for="item in griddata.pageSizeOptions">{{item}}</option>
+            </select>
+            <div class="row" style="overflow:auto;width:100%;margin:0px">
+
+                <table class="table table-bordered table-striped" id="tbData" style="width:100%;font-size: 14px;margin-top:10px">
+                    @*coloumns=================================================================*@
+                    <thead style="color:gray">
+                        <tr style="background-color:rgb(49, 72, 191); color: #e9ecef;">
+                            <th v-if="griddata.MultiSelect">
+                                @*<input type="checkbox" v-on:click="selectall()" />*@
+                            </th>
+                            <th v-for="column in columns" style="min-width:130px;max-width:250px">
+                                {{column.title}}
+                            </th>
+                        </tr>
+                        <tr style="background-color: rgb(210, 214, 236)">
+                            <th v-if="griddata.MultiSelect"></th>
+                            <th v-for="column in columns">
+                                <div class="row">
+                                    @*searching*@
+                                    <div class="float-lg-left">
+                                        <div class="col" v-show="column.searchable">
+                                            <div v-if="query.search">
+                                                <i v-if="column.field==query.search.field" style="margin-left:5px;color:#004085" class="fa fa-filter sorting " data-toggle="dropdown"></i>
+                                                <i v-else style="margin-left:5px;color:gray" class="fa fa-filter sorting " data-toggle="dropdown"></i>
+                                                <div class="dropdown-menu" style="padding:5px; width: 244px;">
+                                                    <div class="input-group">
+                                                        <input type="text" v-model="searchValue" class="form-control py-2" placeholder="search" aria-describedby="basic-addon1" />
+                                                        <span class="input-group-append">
+                                                            <button class="btn btn-outline-secondary" type="button" v-on:click="search(column.field)">
+                                                                <i class="fa fa-search"></i>
+                                                            </button>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div v-else>
+                                                <i style="margin-left:5px;color:gray" class="fa fa-filter sorting " data-toggle="dropdown"></i>
+                                                <div class="dropdown-menu" style="padding:5px; width: 244px;">
+                                                    <div class="input-group">
+                                                        <input type="text" v-model="searchValue" class="form-control py-2" placeholder="search" aria-describedby="basic-addon1" />
+                                                        <span class="input-group-append">
+                                                            <button class="btn btn-outline-secondary" type="button" v-on:click="search(column.field)">
+                                                                <i class="fa fa-search"></i>
+                                                            </button>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @*sorting*@
+                                    <div class="float-lg-right">
+                                        <div class="" v-show="column.sortable">
+                                            <i v-if="column.field==query.sort && query.order=='asc'" style="margin-left:5px;color:#004085;" class="fa fa-arrow-up sorting" v-on:click="changeSorting(column.field,'asc')"></i>
+                                            <i v-else style="margin-left:5px;color:gray" class="fa fa-arrow-up sorting" v-on:click="changeSorting(column.field,'asc')"></i>
+                                            <i v-if="column.field==query.sort && query.order=='desc'" style="margin-left:5px;color:#004085" class="fa fa-arrow-down sorting" v-on:click="changeSorting(column.field,'desc')"></i>
+                                            <i v-else style="margin-left:5px;color:gray" class="fa fa-arrow-down sorting" v-on:click="changeSorting(column.field,'desc')"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    @*rows==============================================================================*@
+                    <tbody>
+
+
+
+                        <tr v-for="row in columndata" v-on:click="setkey(row.key)">
+
+                            <td v-if="griddata.MultiSelect">
+                                @*<b-checkbox v-on:click="select(row.key)"></b-checkbox>*@
+                                <input type="checkbox" v-on:click="select(row.key)" />
+                            </td>
+                            <td v-for="item in row.rowdata">
+
+                                <div v-for="name in item.name" v-if="item.type=='link'" class="col">
+                                    <div class="" v-if="name.name=='edit'">
+                                        <a href="#" style="cursor:pointer" v-on:click="strRowData(row.index)">@*Edit*@ <i class="fa fa-edit"></i></a>
+                                    </div>
+                                    <div class="" v-if=" name.name=='detail'">
+                                        <a :href="item.derailBtnUrl" style="cursor:pointer">@*Edit*@  <i class="fa fa-info-circle"></i></a>
+                                    </div>
+                                </div>
+
+                                <div v-if="item.type=='linksimple'">
+                                    <a v-if="item.value=='#'" :href="item.value" style="cursor:pointer"> {{item.value}} </a>
+                                    <a v-else :href="item.value" style="cursor:pointer" target="_blank"> {{item.value}} </a>
+                                </div>
+                                <div v-if="item.type=='linkdynamic'">
+                                    <a v-if="item.url=='#'" :href="item.url" style="cursor:pointer"> {{item.value}} </a>
+                                    <a v-else :href="item.url" style="cursor:pointer" target="_blank"> {{item.value}} </a>
+                                </div>
+                                <div v-if="item.type=='linkstatic'">
+                                    <a v-if="item.value=='#'" :href="item.value" style="cursor:pointer"> {{item.name}} </a>
+                                    <a v-else :href="item.value" style="cursor:pointer" target="_blank"> {{item.name}} </a>
+                                </div>
+                                <div v-if="item.type=='dynamiclinkwithstaticfield'">
+                                    <a v-if="item.url=='#'" :href="item.url" style="cursor:pointer"> {{item.name}} </a>
+                                    <a v-else :href="item.url" style="cursor:pointer" target="_blank"> {{item.name}} </a>
+                                </div>
+                                <div v-if="item.type=='date'">
+                                    {{item.value | dateFormat}}
+                                </div>
+                                <div v-if="item.type=='currency'">
+                                    {{item.value | toCurrency}}
+                                </div>
+                                <div v-if="item.type=='boolean'">
+                                    {{item.value | toBoolean}}
+                                </div>
+                                <div v-if="item.type=='tooltip'" data-toggle="tooltip" data-placement="bottom" :title="item.value">
+                                    {{item.value | SubStr}}
+                                </div>
+                                <div v-if="item.type=='summary'">
+                                    <span class="fa fa-plus-circle " style="cursor:pointer;color:#28a745;font-size: 17px;" data-toggle="collapse" aria-expanded="false" :aria-controls="'dv'+item.index" :data-target="'#dv'+item.index" v-on:click="addsummarytotable(row,item.index,$event)"></span>
+                                </div>
+                                <div v-if="!item.type">
+                                    {{item.value}}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td :colspan="columns.length + 1">
+                                Total Rows: {{griddata.total}}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <i v-show="loading" class="fa fa-spinner fa-spin" style="font-size:30px;margin:5px;"></i>
+            <nav aria-label="Page navigation example" style="float:right">
+                <ul class="pagination" id="dvPaging">
+                    <li class="page-item">
+                        <a class="page-link" aria-label="Previous" v-on:click="ChangePage('previous','',$event)">
+                            <span aria-hidden="true">&laquo;</span>
+                            <span class="sr-only">Previous</span>
+                        </a>
+                    </li>
+                    <li class="page-item active" v-for="item in paging" v-if="item==1" v-on:click="ChangePage(item ,'Index',$event)"><a class="page-link">{{item}}</a></li>
+                    <li class="page-item" v-for="item in paging" v-if="item!=1" v-on:click="ChangePage(item ,'Index',$event)"><a class="page-link">{{item}}</a></li>
+                    <li class="page-item">
+                        <a class="page-link" aria-label="Next" v-on:click="ChangePage('next','',$event)">
+                            <span aria-hidden="true">&raquo;</span>
+                            <span class="sr-only">Next</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+
+        </div>
+        
+    </div>
+</template>
+<script>
+
+    // Vue.use(Buefy.default)
+    Vue.use(VeeValidate);
+    Vue.use(Toasted);
+    var PulseLoader = VueSpinner.PulseLoader
+  //  Vue.component('flat-pickr', VueFlatpickr);
+    Vue.component('Grid', {
+        template: '#Grid',
+        props: ['griddata'], 
+        tab_data: null,
+        tab_index: null,
+        tab_event: null,
+        data: () => {
+            return {
+                SelectedPage: 0,
+                loading: false,
+             
+                summary:null,
+                pageNo: 0,
+                pageSize: 0,
+                searchValue: '',
+                query: {},
+                selectedkey: 0,
+                selectedkeys: "",
+                lastindex: 0
+            }
+        },
+
+        filters: {
+            capitalize: function (value) {
+                if (!value) return ''
+                value = value.toString()
+                return value.charAt(0).toUpperCase() + value.slice(1)
+            },
+            dateFormat: function (value) {
+                if (!value) return ''
+                return moment(value.toString()).format('MM/DD/YYYY')
+            },
+            SubStr: function (value) {
+                if (!value) return ''
+                return value.substr(0, 18) + ' ..';
+            },
+            toCurrency: function (value) {
+                var formatter = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 2
+                });
+
+                return formatter.format(value);
+            },
+            toPercentage: function (value) {
+                let val = (value / 1).toFixed(2).replace('.', '.');
+                var price = val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                return price + '%';
+            },
+            toDecimal: function (value) {
+                let val = (value / 1).toFixed(2).replace('.', '.');
+                var price = val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                return price;
+            },
+            toBoolean: function (value) {
+                if (value == 'True') {
+                    value = 'Yes';
+                }
+                else {
+                    value = 'No';
+                }
+                return value;
+            },
+        },
+        methods: {
+            updateSummaryTable: function (data, index, event)
+            {
+              
+              var summaryData = data;
+              var str = "";
+            
+              for (var i = 0; i < summaryData.length; i++) {
+          
+                  str = str + "  <tr> ";
+                  var Arr = Object.values(summaryData[i]);
+                  Arr.forEach(function (item) {
+                      str = str + "<td>" + item + "</td>";
+                  });
+                  str = str + " </tr> ";
+
+              }
+                   
+                $("#dvTab table tbody").html(str);
+              
+            },
+            addsummarytotable: function (data, index, event) {
+
+                this.tab_data = data;
+                this.tab_index = index;
+                this.tab_event = event;
+                if (index == this.lastindex) {
+
+                    $("#tbData tbody tr:nth-child(" + (parseInt(index) + 1) + ")").remove();
+                    this.lastindex = 0;
+                }
+                else {
+                    var colSpan = this.columns.length + 1
+                    var summaryData = this.griddata.summary;
+                    var header = this.griddata.data[index - 1][summaryData.header];
+                    var lineItems = "";
+                    var rowdata = this.griddata.data;
+                    var tabData = [];
+                  
+                    if (summaryData.tab == true) {
+                        this.$emit("getsummarytab", this.columndata[index - 1].key);
+                    }
+                  
+                    $.each(summaryData.lines, function (i, line) {
+                  
+                        if (line.type == 'date') {
+                            lineItems = lineItems + "<br>" + line.title + ": " + moment(rowdata[index - 1][line.field]).format('MM/DD/YYYY');
+                        }
+                        else {
+
+                            lineItems = lineItems + "<br>" + line.title + ": " + (rowdata[index - 1][line.field]==null?'':rowdata[index - 1][line.field]);
+                        }
+
+                    })
+
+                    string = "<tr ><td colspan='" + colSpan + "'> ";
+                    string = string + " <div  class='row collapse' id='dv" + index + "' > ";
+          
+                    if (summaryData.tab == true) {
+                        string = string + " <div class='col-sm-8'> <div class='card'> ";
+                        string = string + "    <div class='card-body' id='dvTab'> ";
+                        string = string + "       <h5 class='card-title'><b>" + summaryData.tabData.title + "</b></h5><br> ";
+
+                        string = string + "  <table class='table table- bordered'>  ";
+                        string = string + "     <thead> ";
+                        string = string + "        <tr> ";
+                        summaryData.tabData.headers.forEach(function (item) {
+                            string = string + "  <th>" + item +"</th> ";
+                        });
+                      
+                        string = string + "         </tr> ";
+                        string = string + "     </thead> ";
+                        string = string + "    <tbody> ";
+                   
+                        //summaryData.tabData.data.forEach(function (item) {
+                          
+                        //    string = string + "  <tr> <td>" + item.item_id +"</td> ";
+                        //    string = string + "<td>" + item.unit_price+"</td>";
+                        //    string = string + "<td>" + item.line_description+"</td>";
+                        //    string = string + "<td>" + item.part_ref_num +"</td>";
+                        //    string = string + "<td>" + item.item_id +"</t        d>";
+                        //    string = string + " </tr> ";
+                        //});
+                        string = string + "  </tbody> ";
+                        string = string + "  </table> ";
+        
+                        string = string + "    </div> ";
+                        string = string + " </div ></div > ";
+                    }
+                    string = string + "  <div class='col-sm-4'> <div class='card'>   <div class='card-body'> ";
+                    string = string + "       <h5 class='card-title'><b>" + header + "</b></h5> ";
+                 
+                    string = string + "       <p class='card-text'>" + lineItems + "</p> ";
+                    string = string + "    </div> ";
+                    string = string + " </div ></div > ";
+                    string = string + "</div > </td ></tr > ";
+                    if (this.lastindex != 0) {
+                        $("#tbData tbody tr:nth-child(" + (parseInt(this.lastindex) + 1) + ")").remove();
+                        $("#tbData tbody tr:nth-child(" + parseInt(this.lastindex) + ")").find('.fa')[0].className = 'fa fa-plus-circle';
+                        $("#tbData tbody tr:nth-child(" + parseInt(this.lastindex) + ")").find('.fa')[0].style.color = '#28a745';
+                    }
+                
+                    $(string).insertAfter("#tbData tbody tr:nth-child(" + (parseInt(index)) + ")");
+                    this.lastindex = index;
+                }
+               
+                if (event.target.className.indexOf('plus') > 0) {
+                
+                        event.target.className = event.target.className.replace('plus', 'minus');
+                        event.target.style.color = "#dc3545";
+                   
+                }
+                else {
+                    event.target.className = event.target.className.replace('minus', 'plus');
+                    event.target.style.color = "#28a745";
+                }
+
+            },
+            select(id) {
+
+                this.selectedkeys = this.selectedkeys + id + ",";
+                this.selectedkeys = this.selectedkeys;
+                var keys = this.selectedkeys;
+                this.$emit("selected", keys.substr(0, this.selectedkeys.length - 1));
+            },
+            strRowData(index) {
+                var key = this.selectedkey;
+                this.$emit("edit", this.griddata.data[index])
+
+            },
+            setkey(key) {
+                this.selectedkey = key;
+                this.$emit("setkey", this.selectedkey);
+            },
+            reset() {
+                this.query = { limit: 10, offset: 0, sort: this.griddata.columns[0].field, order: "asc", search: null };
+                this.searchValue = "";
+
+                this.$toasted.show("Reset Successful", options);
+            },
+            search: function (field) {
+                this.query.search = { field: field, value: this.searchValue };
+            },
+            changeSorting(value, order) {
+
+                this.query.sort = value;
+                this.query.order = order;
+                if (order == 'asc') {
+
+                }
+                else if (order == 'desc') {
+                }
+            },
+            changePageSize() {
+                this.query.limit = parseInt($("#ddpageSize").val());
+            },
+            ChangePage(index, type, event) {
+
+                if (index == 'previous') {
+                    if (this.query.offset > 0) {
+                        this.query.offset = this.query.offset - this.query.limit;
+                    }
+                }
+                else if (index == 'next' && (this.query.offset + this.query.limit) < this.griddata.total) {
+                    if (this.query.offset < this.griddata.total) {
+                        this.query.offset = (this.query.offset + this.query.limit);
+                    }
+                }
+                else if (type == 'Index') {
+                    this.query.offset = (this.query.limit * index) - this.query.limit;
+                }
+
+                var activepage = this.activepage;
+
+                $('#dvPaging li').each(function () {
+
+                    if ($(this).text() == activepage) {
+                        $(this).addClass('active')
+                    }
+                    else {
+                        $(this).removeClass('active')
+                    }
+
+                })
+            }
+
+        },
+        computed: {
+            summary_data: function () {
+                if (this.griddata.summary != undefined)
+                {
+                    if (this.griddata.summary.tabData != undefined) 
+                    {
+                        summary_data = this.griddata.summary.tabData.data;
+                    }
+                }
+               else {
+                    summary_data = {};
+                }
+               
+                return summary_data;
+            },
+            activepage: function () {
+                var activepage = (this.query.offset + this.query.limit) / this.query.limit;
+                return activepage;
+            },
+            paging: function () {
+                var paging = [];
+                var pageSize = this.griddata.query.limit;
+                var totalRecords = this.griddata.total;
+                var totalPages = Math.ceil(parseFloat(totalRecords) / parseFloat(pageSize));
+                for (var i = 1; i <= totalPages; i++) {
+                    paging.push(i);
+                }
+                return paging;
+            },
+            selectedPageSize: function () {
+                var selectedPageSize = this.griddata.query.limit;
+                return selectedPageSize;
+            },
+            columns: function () {
+                this.griddata.columns;
+                var columns = [];
+                for (var i = 0; i < this.griddata.columns.length; i++) {
+                    if (this.griddata.columns[i].visible != false)
+                        columns.push(this.griddata.columns[i]);
+                }
+                return columns;
+            },
+            columndata: function () {
+                var columndata = [];
+
+                for (var j = 0; j < this.griddata.data.length; j++) {
+
+                    var coloumn = [];
+                    var key = 0;
+                    for (var i = 0; i < this.griddata.columns.length; i++) {
+
+                        if (this.griddata.columns[i].visible != false) {
+                            //Creating URL for Dynamic Link====
+                            var url = '';
+                            var derailBtnUrl = ''
+                            if (this.griddata.columns[i].type == 'linkdynamic' || this.griddata.columns[i].type == 'dynamiclinkwithstaticfield') {
+
+                                var me = this;
+                                url = this.griddata.columns[i].url + '?';
+                                $.each(this.griddata.columns[i].parameters, function (i, item) {
+                                    url = url + item.title + '=';
+                                    url = url + me.griddata.data[j][item.field] + '&';
+                                })
+
+                                url = url.substr(0, url.length - 1);
+                            }
+
+
+                            if (this.griddata.columns[i].type == 'link') {
+                                var me = this;
+                                $.each(this.griddata.columns[i].name, function (i, item) {
+
+                                    if (item.name == 'detail') {
+
+                                        derailBtnUrl = item.url + '?';
+                                        $.each(item.parameters, function (i, param) {
+                                            derailBtnUrl = derailBtnUrl + param.title + '=';
+                                            derailBtnUrl = derailBtnUrl + me.griddata.data[j][param.field] + '&';
+                                        })
+                                    }
+                                });
+                                derailBtnUrl = derailBtnUrl.substr(0, derailBtnUrl.length - 1);
+
+                            }
+                            coloumn.push({
+                                value: this.griddata.data[j][this.griddata.columns[i].field],
+                                type: this.griddata.columns[i].type,
+                                title: this.griddata.columns[i].title,
+                                name: this.griddata.columns[i].name,
+                                field: this.griddata.columns[i].field,
+                                index: j + 1,
+                                url: url,
+                                derailBtnUrl: derailBtnUrl
+                            });
+
+                        }
+                        if (this.griddata.columns[i].key) {
+                            key = this.griddata.data[j][this.griddata.columns[i].field];
+                        }
+                    }
+                    columndata.push({ rowdata: coloumn, key: key, index: [j] });
+                }
+                this.loading = false ;
+                return columndata;
+            }
+        },
+        mounted: function () {
+
+            this.query = { limit: (this.griddata.query.limit == undefined ? 10 : this.griddata.query.limit), offset: 0, sort: this.griddata.columns[0].field, order: "asc", search: null };
+            var activepage = this.activepage;
+
+        },
+        updated: function () {
+
+            //$('#dvPaging li').each(function () {
+            //    if ($(this).text() == 1) {
+            //        $(this).addClass('active')
+            //    }
+            //})
+        },
+        watch: {
+            query: {
+                handler(query) {
+                    this.loading = true;
+                    this.$emit("querychange", this.query)
+                },
+            },
+            summary_data: {
+                handler(data) {
+                   
+                    this.updateSummaryTable(data, this.tab_index, this.tab_event);
+                }
+            },
+            columndata: {
+                handler(query) {
+
+                    this.selectedkeys = "";
+                    this.$emit("selected", "");
+                    $("#tbData tbody tr").each(function () {
+                        $(this.firstChild.firstChild).prop('checked', false);
+
+                    })
+                }
+
+            }
+        }
+    })
+    $(document).ready()
+    {
+        $(function () {
+            $('[data-toggle="tooltip"]').tooltip()
+        })
+    }
+</script>
